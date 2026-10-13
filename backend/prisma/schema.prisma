@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExamSession {
+  NORMAL
+  REPLACEMENT
+}
+
+model Series {
+  id Int @id @default(autoincrement())
+  name String @unique
+
+  exams Exam[]
+  subjects Subject[]
+  topics Topic[]
+}
+
+model Subject {
+  id Int @id @default(autoincrement())
+  name String @unique
+
+  topics Topic[]
+  exams Exam[]
+  series Series[]
+}
+
+model Topic {
+  id Int @id @default(autoincrement())
+  name String
+  subjectId Int
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  exercises Exercise[]
+  series Series[]
+
+  @@unique([name, subjectId])
+}
+
+model Exam {
+  id Int @id @default(autoincrement())
+  year Int
+  session ExamSession
+  seriesId Int
+  subjectId Int
+
+  series Series @relation(fields: [seriesId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  exercises Exercise[]
+
+  @@unique([year, session, seriesId, subjectId])
+}
+
+model Exercise {
+  id Int @id @default(autoincrement())
+  exerciseNumber Int
+  examId Int
+  topicId Int
+  statement String?
+  statementFile String?
+  correction String?
+  correctionFile String?
+
+  exam Exam @relation(fields: [examId], references: [id])
+  topic Topic @relation(fields: [topicId], references: [id])
+
+  @@unique([examId, exerciseNumber])
+}
