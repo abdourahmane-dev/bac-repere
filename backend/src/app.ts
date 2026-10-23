@@ -1,5 +1,6 @@
 import express from "express";
 import seriesRoutes from "./routes/series.routes.js";
+import subjectsRoutes from "./routes/subjects.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -9,6 +10,7 @@ app.get('/', (req, res) => {
 });
 
 app.use("/api/series", seriesRoutes);
+app.use("/api/subjects", subjectsRoutes);
 
 app.use(errorHandler);
 
