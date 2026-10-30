@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
-import { getAllSeries } from "../services/series.service.js";
+import { listSeries } from "../services/series.service.js";
 
 export const getSeries = async (req: Request, res: Response) => {
-  const series = await getAllSeries();
+  const series = await listSeries();
   res.json(series);
 };
 

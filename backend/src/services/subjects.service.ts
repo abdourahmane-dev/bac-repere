@@ -1,6 +1,10 @@
 import { prisma } from "../config/prisma.js";
 
-export const getSubjectsBySeries = async (seriesId: number) => {
+type SubjectFilters = {
+  seriesId: number;
+};
+
+export const listSubjectsBySeries = async ({ seriesId }: SubjectFilters) => {
   return prisma.subject.findMany({
     where: {
       series: {

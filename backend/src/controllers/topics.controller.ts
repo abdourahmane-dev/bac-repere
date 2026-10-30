@@ -1,27 +1,19 @@
 import type { Request, Response } from "express";
-import { getTopics } from "../services/topics.service.js";
+import { listTopics } from "../services/topics.service.js";
+import { parsePositiveInt } from "../utils/parsePositiveInt.js";
 
-export const getTopicsHandler = async (req: Request, res: Response) => {
-  const subjectIdParam = req.query.subjectId;
-  const seriesIdParam = req.query.seriesId;
+export const getTopics = async (req: Request, res: Response) => {
+  const subjectId = parsePositiveInt(req.query.subjectId);
+  const seriesId = parsePositiveInt(req.query.seriesId);
 
-  if (!subjectIdParam || !seriesIdParam) {
+  if (subjectId === null || seriesId === null) {
     res.status(400).json({
-      message: "Les paramètres subjectId et seriesId sont obligatoires.",
+      message:
+        "Les paramètres subjectId et seriesId sont obligatoires, uniques et doivent être des nombres entiers positifs.",
     });
     return;
   }
 
-  const subjectId = Number(subjectIdParam);
-  const seriesId = Number(seriesIdParam);
-
-  if (isNaN(subjectId) || isNaN(seriesId)) {
-    res.status(400).json({
-      message: "Les paramètres subjectId et seriesId doivent être des nombres valides.",
-    });
-    return;
-  }
-
-  const topics = await getTopics(subjectId, seriesId);
+  const topics = await listTopics({ subjectId, seriesId });
   res.json(topics);
 };

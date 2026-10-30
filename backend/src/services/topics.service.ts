@@ -1,6 +1,11 @@
 import { prisma } from "../config/prisma.js";
 
-export const getTopics = async (subjectId: number, seriesId: number) => {
+type TopicFilters = {
+  subjectId: number;
+  seriesId: number;
+};
+
+export const listTopics = async ({ subjectId, seriesId }: TopicFilters) => {
   return prisma.topic.findMany({
     where: {
       subjectId,

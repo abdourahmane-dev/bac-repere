@@ -1,20 +1,18 @@
 import type { Request, Response } from "express";
-import { getSubjectsBySeries } from "../services/subjects.service.js";
+import { listSubjectsBySeries } from "../services/subjects.service.js";
+import { parsePositiveInt } from "../utils/parsePositiveInt.js";
 
 export const getSubjects = async (req: Request, res: Response) => {
-  const seriesIdParam = req.query.seriesId;
+  const seriesId = parsePositiveInt(req.query.seriesId);
 
-  if (!seriesIdParam) {
-    res.status(400).json({ message: "Le paramètre seriesId est obligatoire." });
+  if (seriesId === null) {
+    res.status(400).json({
+      message:
+        "Le paramètre seriesId est obligatoire, unique et doit être un nombre entier positif.",
+    });
     return;
   }
 
-  const seriesId = Number(seriesIdParam);
-  if (isNaN(seriesId)) {
-    res.status(400).json({ message: "Le paramètre seriesId doit être un nombre valide." });
-    return;
-  }
-
-  const subjects = await getSubjectsBySeries(seriesId);
+  const subjects = await listSubjectsBySeries({ seriesId });
   res.json(subjects);
 };
