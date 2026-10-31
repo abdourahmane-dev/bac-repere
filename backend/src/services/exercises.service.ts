@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import { AppError } from "../errors/AppError.js";
 
 type ExerciseFilters = {
   topicId: number;
@@ -15,6 +16,34 @@ export const listExercises = async ({
   page,
   limit,
 }: ExerciseFilters) => {
+  const context = await prisma.topic.findFirst({
+    where: {
+      id: topicId,
+      subjectId,
+      series: {
+        some: {
+          id: seriesId,
+        },
+      },
+      subject: {
+        series: {
+          some: {
+            id: seriesId,
+          },
+        },
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!context) {
+    throw new AppError(
+      404,
+      "NOT_FOUND",
+      "La notion demandée est introuvable pour cette matière et cette série."
+    );
+  }
+
   const where = {
     topic: {
       id: topicId,
