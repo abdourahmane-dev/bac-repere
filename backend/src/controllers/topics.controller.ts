@@ -9,5 +9,5 @@ export const getTopics = async (req: Request, res: Response) => {
   ]);
 
   const topics = await listTopics({ subjectId, seriesId });
-  res.json(topics);
+  res.json({ data: topics });
 };

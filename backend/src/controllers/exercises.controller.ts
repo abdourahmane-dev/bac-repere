@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { listExercises } from "../services/exercises.service.js";
+import {
+  getExerciseById,
+  listExercises,
+} from "../services/exercises.service.js";
 import { parsePagination, parsePositiveIntFields } from "../utils/query.js";
 
 export const getExercises = async (req: Request, res: Response) => {
@@ -32,4 +35,10 @@ export const getExercises = async (req: Request, res: Response) => {
       hasPrevious: page > 1,
     },
   });
+};
+
+export const getExercise = async (req: Request, res: Response) => {
+  const { id } = parsePositiveIntFields(req.params, ["id"]);
+  const exercise = await getExerciseById(id);
+  res.json({ data: exercise });
 };

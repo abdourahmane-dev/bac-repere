@@ -13,16 +13,13 @@ type ErrorBody = {
   };
 };
 
-type ExercisesBody = {
-  data: unknown[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrevious: boolean;
-  };
+type DataBody<T> = {
+  data: T;
+};
+
+type Series = {
+  id: number;
+  name: string;
 };
 
 type Subject = {
@@ -33,6 +30,59 @@ type Subject = {
 type Topic = {
   id: number;
   name: string;
+};
+
+type ExerciseSummary = {
+  id: number;
+  exerciseNumber: number;
+  statement: string | null;
+  statementFile: string | null;
+  topicId: number;
+  exam: {
+    id: number;
+    year: number;
+    session: string;
+  };
+};
+
+type ExercisesBody = {
+  data: ExerciseSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+};
+
+type ExerciseDetailBody = {
+  data: {
+    id: number;
+    exerciseNumber: number;
+    statement: string | null;
+    statementFile: string | null;
+    correction: string | null;
+    correctionFile: string | null;
+    exam: {
+      id: number;
+      year: number;
+      session: string;
+      series: {
+        id: number;
+        name: string;
+      };
+      subject: {
+        id: number;
+        name: string;
+      };
+    };
+    topic: {
+      id: number;
+      name: string;
+    };
+  };
 };
 
 let server: Server | undefined;
@@ -51,6 +101,7 @@ let subjectId = 0;
 let otherSubjectId = 0;
 let topicId = 0;
 let emptyTopicId = 0;
+let firstExerciseId = 0;
 
 const get = async <T>(path: string) => {
   const response = await fetch(`${baseUrl}${path}`);
@@ -115,8 +166,16 @@ before(async () => {
       examId: exam.id,
       topicId: topic.id,
       statement: `Exercice de test ${exerciseNumber}`,
+      correction: `Correction de test ${exerciseNumber}`,
     })),
   });
+
+  const firstExercise = await prisma.exercise.findFirst({
+    where: { examId: exam.id },
+    orderBy: { exerciseNumber: "asc" },
+    select: { id: true },
+  });
+  assert.ok(firstExercise);
 
   seriesId = series.id;
   otherSeriesId = otherSeries.id;
@@ -124,6 +183,7 @@ before(async () => {
   otherSubjectId = otherSubject.id;
   topicId = topic.id;
   emptyTopicId = emptyTopic.id;
+  firstExerciseId = firstExercise.id;
 
   server = app.listen(0);
   await new Promise<void>((resolve) => server!.once("listening", resolve));
@@ -161,7 +221,7 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-describe("validation des paramètres", () => {
+describe("validation et contrat de l'API", () => {
   test("GET /api/subjects refuse une série inexistante", async () => {
     const { response, body } = await get<ErrorBody>(
       "/api/subjects?seriesId=999999999"
@@ -188,14 +248,31 @@ describe("validation des paramètres", () => {
     }
   });
 
+  test("GET /api/series renvoie une enveloppe data", async () => {
+    const { response, body } = await get<DataBody<Series[]>>("/api/series");
+
+    assert.equal(response.status, 200);
+    assert.ok(Array.isArray(body.data));
+    assert.ok(body.data.some((item) => item.id === seriesId));
+  });
+
   test("GET /api/subjects retourne les matières d'une série valide", async () => {
-    const { response, body } = await get<Subject[]>(
+    const { response, body } = await get<DataBody<Subject[]>>(
       `/api/subjects?seriesId=${seriesId}`
     );
 
     assert.equal(response.status, 200);
-    assert.ok(body.some((subject) => subject.id === subjectId));
-    assert.ok(body.some((subject) => subject.id === otherSubjectId));
+    assert.ok(body.data.some((subject) => subject.id === subjectId));
+    assert.ok(body.data.some((subject) => subject.id === otherSubjectId));
+  });
+
+  test("GET /api/subjects renvoie data vide pour une série sans matières", async () => {
+    const { response, body } = await get<DataBody<Subject[]>>(
+      `/api/subjects?seriesId=${otherSeriesId}`
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(body.data, []);
   });
 
   test("GET /api/topics exige subjectId et seriesId", async () => {
@@ -220,22 +297,22 @@ describe("validation des paramètres", () => {
   });
 
   test("GET /api/topics retourne les notions du contexte", async () => {
-    const { response, body } = await get<Topic[]>(
+    const { response, body } = await get<DataBody<Topic[]>>(
       `/api/topics?subjectId=${subjectId}&seriesId=${seriesId}`
     );
 
     assert.equal(response.status, 200);
-    assert.ok(body.some((topic) => topic.id === topicId));
-    assert.ok(body.some((topic) => topic.id === emptyTopicId));
+    assert.ok(body.data.some((topic) => topic.id === topicId));
+    assert.ok(body.data.some((topic) => topic.id === emptyTopicId));
   });
 
   test("GET /api/topics accepte un contexte valide sans notions", async () => {
-    const { response, body } = await get<Topic[]>(
+    const { response, body } = await get<DataBody<Topic[]>>(
       `/api/topics?subjectId=${otherSubjectId}&seriesId=${seriesId}`
     );
 
     assert.equal(response.status, 200);
-    assert.deepEqual(body, []);
+    assert.deepEqual(body.data, []);
   });
 
   test("GET /api/exercises exige les filtres obligatoires", async () => {
@@ -280,6 +357,17 @@ describe("validation des paramètres", () => {
       hasPrevious: false,
     });
     assert.equal(page1.body.data.length, 2);
+
+    const first = page1.body.data[0];
+    assert.ok(first);
+    assert.equal(first.id, firstExerciseId);
+    assert.equal(first.exerciseNumber, 1);
+    assert.equal(first.statement, "Exercice de test 1");
+    assert.equal(first.statementFile, null);
+    assert.equal(first.topicId, topicId);
+    assert.equal(first.exam.year, 2099);
+    assert.equal(first.exam.session, "NORMAL");
+    assert.equal("correction" in first, false);
 
     const page2 = await get<ExercisesBody>(
       `/api/exercises?topicId=${topicId}&subjectId=${subjectId}&seriesId=${seriesId}&page=2&limit=2`
@@ -331,6 +419,42 @@ describe("validation des paramètres", () => {
     assert.deepEqual(body.data, []);
     assert.equal(body.pagination.total, 3);
     assert.equal(body.pagination.hasNext, false);
+  });
+
+  test("GET /api/exercises/:id renvoie le détail avec correction et contexte", async () => {
+    const { response, body } = await get<ExerciseDetailBody>(
+      `/api/exercises/${firstExerciseId}`
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(body.data.id, firstExerciseId);
+    assert.equal(body.data.exerciseNumber, 1);
+    assert.equal(body.data.statement, "Exercice de test 1");
+    assert.equal(body.data.statementFile, null);
+    assert.equal(body.data.correction, "Correction de test 1");
+    assert.equal(body.data.correctionFile, null);
+    assert.equal(body.data.exam.id, created.examIds[0]);
+    assert.equal(body.data.exam.year, 2099);
+    assert.equal(body.data.exam.session, "NORMAL");
+    assert.equal(body.data.exam.series.id, seriesId);
+    assert.equal(body.data.exam.subject.id, subjectId);
+    assert.equal(body.data.topic.id, topicId);
+    assert.ok(body.data.topic.name.length > 0);
+  });
+
+  test("GET /api/exercises/:id valide l'identifiant", async () => {
+    for (const id of ["abc", "0", "-1"]) {
+      const { response, body } = await get<ErrorBody>(`/api/exercises/${id}`);
+      assert.equal(response.status, 400);
+      assert.equal(body.error.code, "INVALID_QUERY");
+    }
+  });
+
+  test("GET /api/exercises/:id renvoie 404 pour un exercice inconnu", async () => {
+    const { response, body } = await get<ErrorBody>("/api/exercises/999999999");
+
+    assert.equal(response.status, 404);
+    assert.equal(body.error.code, "NOT_FOUND");
   });
 
   test("une route inconnue renvoie un 404 JSON", async () => {

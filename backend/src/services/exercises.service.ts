@@ -71,9 +71,72 @@ export const listExercises = async ({
       ],
       skip: (page - 1) * limit,
       take: limit,
+      select: {
+        id: true,
+        exerciseNumber: true,
+        statement: true,
+        statementFile: true,
+        topicId: true,
+        exam: {
+          select: {
+            id: true,
+            year: true,
+            session: true,
+          },
+        },
+      },
     }),
     prisma.exercise.count({ where }),
   ]);
 
   return { data, total };
+};
+
+export const getExerciseById = async (id: number) => {
+  const exercise = await prisma.exercise.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      exerciseNumber: true,
+      statement: true,
+      statementFile: true,
+      correction: true,
+      correctionFile: true,
+      exam: {
+        select: {
+          id: true,
+          year: true,
+          session: true,
+          series: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          subject: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      topic: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!exercise) {
+    throw new AppError(
+      404,
+      "NOT_FOUND",
+      "L'exercice demandé est introuvable."
+    );
+  }
+
+  return exercise;
 };
