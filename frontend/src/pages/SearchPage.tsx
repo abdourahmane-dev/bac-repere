@@ -1,3 +1,5 @@
+import SearchForm from '../features/exercises/SearchForm'
+
 function SearchPage() {
   return (
     <section>
@@ -8,6 +10,7 @@ function SearchPage() {
         Choisissez une série, une matière et une notion pour retrouver les
         exercices du bac.
       </p>
+      <SearchForm />
     </section>
   )
 }
