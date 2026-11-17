@@ -14,7 +14,6 @@ function SearchForm() {
     loadingTopics,
     error,
     canSearch,
-    submitted,
     handleSeriesChange,
     handleSubjectChange,
     handleTopicChange,
@@ -33,15 +32,6 @@ function SearchForm() {
     value: item.id,
     label: item.name,
   }))
-
-  const selectedSeries = series.find((item) => item.id === selectedSeriesId)
-  const selectedSubject = subjects.find((item) => item.id === selectedSubjectId)
-  const selectedTopic = topics.find((item) => item.id === selectedTopicId)
-
-  const summary =
-    submitted && selectedSeries && selectedSubject && selectedTopic
-      ? `${selectedSeries.name} · ${selectedSubject.name} · ${selectedTopic.name}`
-      : null
 
   return (
     <form
@@ -129,15 +119,6 @@ function SearchForm() {
           Rechercher
         </button>
       </div>
-
-      {summary && (
-        <p
-          role="status"
-          className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600"
-        >
-          Recherche : <span className="font-medium text-slate-900">{summary}</span>
-        </p>
-      )}
     </form>
   )
 }

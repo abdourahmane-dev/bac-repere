@@ -4,6 +4,20 @@ type ApiEnvelope<T> = {
   data: T
 }
 
+export type Pagination = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
+export type PaginatedResult<T> = {
+  data: T
+  pagination: Pagination
+}
+
 type ApiErrorBody = {
   error: {
     message: string
@@ -55,7 +69,7 @@ const buildQuery = (params?: QueryParams) => {
   return query ? `?${query}` : ''
 }
 
-export const apiGet = async <T>(
+const request = async <T>(
   path: string,
   params?: QueryParams,
 ): Promise<T> => {
@@ -86,7 +100,19 @@ export const apiGet = async <T>(
     throw new ApiError(response.status, message)
   }
 
-  const body = (await response.json()) as ApiEnvelope<T>
+  return (await response.json()) as T
+}
+
+export const apiGet = async <T>(
+  path: string,
+  params?: QueryParams,
+): Promise<T> => {
+  const body = await request<ApiEnvelope<T>>(path, params)
 
   return body.data
 }
+
+export const apiGetPaginated = <T>(
+  path: string,
+  params?: QueryParams,
+): Promise<PaginatedResult<T>> => request<PaginatedResult<T>>(path, params)

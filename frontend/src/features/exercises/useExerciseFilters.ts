@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getSeries, type Series } from '../../api/seriesApi'
 import { getSubjectsBySeries, type Subject } from '../../api/subjectsApi'
 import { getTopicsBySubject, type Topic } from '../../api/topicsApi'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 
 const parseId = (value: string | null) => {
   if (value === null) {
@@ -14,10 +15,8 @@ const parseId = (value: string | null) => {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : 'Une erreur est survenue.'
-
 export function useExerciseFilters() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [series, setSeries] = useState<Series[]>([])
@@ -242,17 +241,14 @@ export function useExerciseFilters() {
       return
     }
 
-    setSearchParams({
+    const params = new URLSearchParams({
       serie: String(selectedSeriesId),
       matiere: String(selectedSubjectId),
       notion: String(selectedTopicId),
     })
-  }
 
-  const submitted =
-    parseId(searchParams.get('serie')) !== null &&
-    parseId(searchParams.get('matiere')) !== null &&
-    parseId(searchParams.get('notion')) !== null
+    navigate(`/exercices?${params.toString()}`)
+  }
 
   const error = seriesError ?? subjectsError ?? topicsError
 
@@ -268,7 +264,6 @@ export function useExerciseFilters() {
     loadingTopics,
     error,
     canSearch,
-    submitted,
     handleSeriesChange,
     handleSubjectChange,
     handleTopicChange,
